@@ -1,0 +1,79 @@
+local UserInputService = game:GetService("UserInputService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local adminEvent = ReplicatedStorage:WaitForChild("AdminEvent")
+
+local gui = script.Parent
+local toggleButton = gui:WaitForChild("ToggleButton")
+local menuFrame = gui:WaitForChild("MenuFrame")
+local closeButton = menuFrame:WaitForChild("CloseButton")
+
+local targetInput = menuFrame:WaitForChild("TargetInput")
+local killButton = menuFrame:WaitForChild("KillButton")
+local killAllButton = menuFrame:WaitForChild("KillAllButton")
+
+---------------------------------------------------------
+-- 1. ระบบเปิด / ปิด เมนู
+---------------------------------------------------------
+toggleButton.MouseButton1Click:Connect(function()
+	menuFrame.Visible = not menuFrame.Visible
+end)
+
+closeButton.MouseButton1Click:Connect(function()
+	menuFrame.Visible = false
+end)
+
+---------------------------------------------------------
+-- 2. ระบบ Drag (ลาก/เคลื่อนย้ายหน้าต่างเมนู)
+---------------------------------------------------------
+local dragging = false
+local dragInput, dragStart, startPos
+
+local function update(input)
+	local delta = input.Position - dragStart
+	menuFrame.Position = UDim2.new(
+		startPos.X.Scale, 
+		startPos.X.Offset + delta.X, 
+		startPos.Y.Scale, 
+		startPos.Y.Offset + delta.Y
+	)
+end
+
+menuFrame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+		dragging = true
+		dragStart = input.Position
+		startPos = menuFrame.Position
+
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+menuFrame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if input == dragInput and dragging then
+		update(input)
+	end
+end)
+
+---------------------------------------------------------
+-- 3. ปุ่มส่งคำสั่ง Kill
+---------------------------------------------------------
+killButton.MouseButton1Click:Connect(function()
+	local targetName = targetInput.Text
+	if targetName ~= "" then
+		adminEvent:FireServer("KillTarget", targetName)
+	end
+end)
+
+killAllButton.MouseButton1Click:Connect(function()
+	adminEvent:FireServer("KillAll")
+end)
